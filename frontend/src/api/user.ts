@@ -28,8 +28,8 @@ export function deleteUser(id: number) {
   return request.delete<any, { code: number }>(`/users/${id}`)
 }
 
-export function updateProfile(nickname: string) {
-  return request.put<any, { code: number; data: User }>('/users/profile', { nickname })
+export function updateProfile(data: { nickname?: string; username?: string }) {
+  return request.put<any, { code: number; message: string; data: User }>('/users/profile', data)
 }
 
 export function uploadAvatar(file: File) {

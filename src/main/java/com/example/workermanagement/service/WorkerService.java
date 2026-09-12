@@ -79,8 +79,4 @@ public class WorkerService {
         }
         workerRepository.deleteById(id);
     }
-    
-    public long countByStatus(String status) {
-        return workerRepository.countByStatus(status);
-    }
 }

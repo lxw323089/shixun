@@ -46,13 +46,7 @@ public class SalaryService {
     public List<Salary> getSalariesByWorkerId(Long workerId) {
         return salaryRepository.findByWorkerId(workerId);
     }
-    
-    public double getTotalSalaryByMonth(String month) {
-        return salaryRepository.findByMonth(month).stream()
-                .mapToDouble(Salary::getTotal)
-                .sum();
-    }
-    
+
     public Optional<Salary> getSalaryById(Long id) {
         return salaryRepository.findById(id);
     }

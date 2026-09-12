@@ -66,8 +66,8 @@ const getStatusOption = () => {
       label: { show: false },
       emphasis: { label: { show: true, fontSize: 16, fontWeight: 'bold' } },
       data: [
-        { value: active, name: '在职', itemStyle: { color: '#10b981' } },
-        { value: inactive, name: '离职', itemStyle: { color: '#94a3b8' } }
+        { value: active, name: '在职', itemStyle: { color: '#3b82f6' } },
+        { value: inactive, name: '离职', itemStyle: { color: '#cbd5e1' } }
       ]
     }]
   }
@@ -79,19 +79,20 @@ const getAttendanceOption = () => {
   store.attendances.forEach(a => {
     statusMap[a.status] = (statusMap[a.status] || 0) + 1
   })
+  // 语义色：正常=蓝，异常类=橙/红/灰
   const colors: Record<string, string> = {
-    '正常': '#10b981',
+    '正常': '#3b82f6',
     '迟到': '#f59e0b',
-    '早退': '#f97316',
+    '早退': '#fb923c',
     '缺勤': '#ef4444',
-    '请假': '#8b5cf6'
+    '请假': '#94a3b8'
   }
   const data = Object.entries(statusMap).map(([name, value]) => ({
-    name, value, itemStyle: { color: colors[name] || '#3b82f6' }
+    name, value, itemStyle: { color: colors[name] || '#94a3b8' }
   }))
   return {
     tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
-    legend: { bottom: 0, icon: 'circle' },
+    legend: { bottom: 0, icon: 'circle', textStyle: { color: '#64748b' } },
     series: [{
       name: '考勤状态',
       type: 'pie',
@@ -113,7 +114,6 @@ const getDeptOption = () => {
   })
   const names = Object.keys(deptMap)
   const values = Object.values(deptMap)
-  const colorList = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6']
   return {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
@@ -136,7 +136,13 @@ const getDeptOption = () => {
       barWidth: '40%',
       itemStyle: {
         borderRadius: [6, 6, 0, 0],
-        color: (params: any) => colorList[params.dataIndex % colorList.length]
+        color: {
+          type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+          colorStops: [
+            { offset: 0, color: '#3b82f6' },
+            { offset: 1, color: '#93c5fd' }
+          ]
+        }
       },
       data: values
     }]
@@ -162,7 +168,7 @@ function goToPage(path: string) {
   <div class="dashboard">
     <div class="page-header">
       <h2 class="page-title">仪表盘</h2>
-      <span class="welcome">欢迎回来，{{ store.currentUser?.username }}</span>
+      <span class="welcome">欢迎回来，{{ store.currentUser?.nickname || store.currentUser?.username }}</span>
     </div>
 
     <!-- 彩色统计卡片 -->

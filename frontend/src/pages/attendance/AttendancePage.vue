@@ -1,17 +1,104 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useAppStore } from '@/stores/app'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Plus, Search, Edit, Delete } from '@element-plus/icons-vue'
 import type { Attendance } from '@/types'
+import * as echarts from 'echarts'
 
 const store = useAppStore()
 
-onMounted(() => {
-  store.loadAttendances()
-  store.loadWorkers()
-  store.loadDepartments()
+const statusChartRef = ref<HTMLElement>()
+const trendChartRef = ref<HTMLElement>()
+let statusChart: echarts.ECharts | null = null
+let trendChart: echarts.ECharts | null = null
+
+onMounted(async () => {
+  await Promise.all([store.loadAttendances(), store.loadWorkers(), store.loadDepartments()])
+  await nextTick()
+  initCharts()
 })
+
+onBeforeUnmount(() => {
+  statusChart?.dispose()
+  trendChart?.dispose()
+})
+
+function initCharts() {
+  if (statusChartRef.value) {
+    statusChart = echarts.init(statusChartRef.value)
+    statusChart.setOption(getStatusChartOption())
+  }
+  if (trendChartRef.value) {
+    trendChart = echarts.init(trendChartRef.value)
+    trendChart.setOption(getTrendChartOption())
+  }
+}
+
+function getStatusChartOption() {
+  const statusMap: Record<string, number> = {}
+  store.attendances.forEach(a => {
+    statusMap[a.status] = (statusMap[a.status] || 0) + 1
+  })
+  // 语义色：正常=蓝，异常类=橙/红/灰
+  const colors: Record<string, string> = {
+    '正常': '#3b82f6', '迟到': '#f59e0b', '早退': '#fb923c', '缺勤': '#ef4444', '请假': '#94a3b8'
+  }
+  const data = Object.entries(statusMap).map(([name, value]) => ({
+    name, value, itemStyle: { color: colors[name] || '#94a3b8' }
+  }))
+  return {
+    tooltip: { trigger: 'item', formatter: '{b}: {c}次 ({d}%)' },
+    legend: { bottom: 0, icon: 'circle', textStyle: { fontSize: 12, color: '#64748b' } },
+    series: [{
+      name: '考勤状态',
+      type: 'pie',
+      radius: ['40%', '65%'],
+      itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
+      label: { show: false },
+      emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' } },
+      data: data.length ? data : [{ value: 1, name: '暂无数据', itemStyle: { color: '#cbd5e1' } }]
+    }]
+  }
+}
+
+function getTrendChartOption() {
+  const dateMap: Record<string, { normal: number; abnormal: number }> = {}
+  store.attendances.forEach(a => {
+    if (!dateMap[a.date]) dateMap[a.date] = { normal: 0, abnormal: 0 }
+    if (a.status === '正常') dateMap[a.date].normal++
+    else dateMap[a.date].abnormal++
+  })
+  const dates = Object.keys(dateMap).sort()
+  return {
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    legend: { bottom: 0, icon: 'circle', textStyle: { fontSize: 12, color: '#64748b' } },
+    grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+    xAxis: {
+      type: 'category', data: dates,
+      axisLine: { lineStyle: { color: '#e2e8f0' } },
+      axisLabel: { color: '#64748b', rotate: dates.length > 5 ? 30 : 0 }
+    },
+    yAxis: {
+      type: 'value',
+      axisLine: { show: false }, axisTick: { show: false },
+      axisLabel: { color: '#64748b' },
+      splitLine: { lineStyle: { color: '#f1f5f9' } }
+    },
+    series: [
+      {
+        name: '正常', type: 'bar', stack: 'total', barWidth: '40%',
+        itemStyle: { color: '#3b82f6', borderRadius: [0, 0, 0, 0] },
+        data: dates.map(d => dateMap[d].normal)
+      },
+      {
+        name: '异常', type: 'bar', stack: 'total',
+        itemStyle: { color: '#cbd5e1', borderRadius: [4, 4, 0, 0] },
+        data: dates.map(d => dateMap[d].abnormal)
+      }
+    ]
+  }
+}
 
 const searchForm = ref({
   dateRange: [] as string[],
@@ -189,6 +276,17 @@ function getStatusType(status: string) {
       </div>
     </div>
 
+    <div class="chart-row">
+      <div class="chart-card card-content">
+        <h3 class="chart-title">考勤状态分布</h3>
+        <div ref="statusChartRef" class="chart-box"></div>
+      </div>
+      <div class="chart-card card-content">
+        <h3 class="chart-title">每日考勤趋势</h3>
+        <div ref="trendChartRef" class="chart-box"></div>
+      </div>
+    </div>
+
     <div class="card-content">
       <div class="search-bar">
         <el-date-picker
@@ -331,6 +429,16 @@ function getStatusType(status: string) {
 .attendance-page {
   padding: 0;
 }
+
+.chart-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+.chart-card { min-height: 280px; }
+.chart-title { font-size: 15px; font-weight: 600; color: #1e293b; margin-bottom: 12px; }
+.chart-box { width: 100%; height: 220px; }
 
 .stats-row {
   display: grid;

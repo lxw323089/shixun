@@ -9,6 +9,5 @@ import java.util.List;
 
 @Repository
 public interface SalaryRepository extends JpaRepository<Salary, Long>, JpaSpecificationExecutor<Salary> {
-    List<Salary> findByMonth(String month);
     List<Salary> findByWorkerId(Long workerId);
 }

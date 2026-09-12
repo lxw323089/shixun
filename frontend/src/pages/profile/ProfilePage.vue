@@ -1,11 +1,18 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useAppStore } from '@/stores/app'
 import { User, Calendar, Wallet, Camera, Edit } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import * as userApi from '@/api/user'
 
 const store = useAppStore()
+
+onMounted(() => {
+  // 重新从数据库加载个人信息相关数据，避免显示缓存旧数据
+  store.loadWorkers()
+  store.loadAttendances()
+  store.loadSalaries()
+})
 
 const activeTab = ref('info')
 const nicknameInput = ref('')
@@ -86,27 +93,27 @@ async function handleAvatarChange(file: any) {
 
 // 昵称编辑
 function startEditNickname() {
-  nicknameInput.value = store.currentUser?.nickname || ''
+  nicknameInput.value = store.currentUser?.nickname || store.currentUser?.username || ''
   nicknameEditing.value = true
 }
 
 async function saveNickname() {
   const name = nicknameInput.value.trim()
   if (!name) {
-    ElMessage.warning('昵称不能为空')
+    ElMessage.warning('名称不能为空')
     return
   }
   try {
-    const res = await userApi.updateProfile(name)
+    const res = await userApi.updateProfile({ nickname: name, username: name })
     if (res.code === 200) {
-      store.updateCurrentUser({ nickname: name })
+      store.updateCurrentUser({ nickname: name, username: name })
       nicknameEditing.value = false
-      ElMessage.success('昵称修改成功')
+      ElMessage.success('名称修改成功，下次登录请使用新名称')
     } else {
-      ElMessage.error('修改失败')
+      ElMessage.error(res.message || '修改失败')
     }
-  } catch (e) {
-    ElMessage.error('修改失败')
+  } catch (e: any) {
+    ElMessage.error(e?.message || '修改失败')
   }
 }
 </script>

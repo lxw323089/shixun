@@ -1,17 +1,103 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useAppStore } from '@/stores/app'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Plus, Search, Edit, Wallet, View } from '@element-plus/icons-vue'
 import type { Salary } from '@/types'
+import * as echarts from 'echarts'
 
 const store = useAppStore()
 
-onMounted(() => {
-  store.loadSalaries()
-  store.loadWorkers()
-  store.loadDepartments()
+const composeChartRef = ref<HTMLElement>()
+const deptChartRef = ref<HTMLElement>()
+let composeChart: echarts.ECharts | null = null
+let deptChart: echarts.ECharts | null = null
+
+onMounted(async () => {
+  await Promise.all([store.loadSalaries(), store.loadWorkers(), store.loadDepartments()])
+  await nextTick()
+  initCharts()
 })
+
+onBeforeUnmount(() => {
+  composeChart?.dispose()
+  deptChart?.dispose()
+})
+
+function initCharts() {
+  if (composeChartRef.value) {
+    composeChart = echarts.init(composeChartRef.value)
+    composeChart.setOption(getComposeChartOption())
+  }
+  if (deptChartRef.value) {
+    deptChart = echarts.init(deptChartRef.value)
+    deptChart.setOption(getDeptChartOption())
+  }
+}
+
+function getComposeChartOption() {
+  const list = store.salaries
+  const baseTotal = list.reduce((sum, s) => sum + s.baseSalary, 0)
+  const bonusTotal = list.reduce((sum, s) => sum + s.bonus, 0)
+  const deductionTotal = list.reduce((sum, s) => sum + s.deduction, 0)
+  return {
+    color: ['#3b82f6', '#93c5fd', '#cbd5e1'],
+    tooltip: { trigger: 'item', formatter: '{b}: ¥{c} ({d}%)' },
+    legend: { bottom: 0, icon: 'circle', textStyle: { fontSize: 12, color: '#64748b' } },
+    series: [{
+      name: '工资构成',
+      type: 'pie',
+      radius: ['40%', '65%'],
+      itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
+      label: { show: false },
+      emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' } },
+      data: [
+        { name: '基本工资', value: baseTotal },
+        { name: '奖金', value: bonusTotal },
+        { name: '扣款', value: deductionTotal }
+      ]
+    }]
+  }
+}
+
+function getDeptChartOption() {
+  const deptMap: Record<string, number> = {}
+  store.salaries.forEach(s => {
+    deptMap[s.departmentName || '未分配'] = (deptMap[s.departmentName || '未分配'] || 0) + s.total
+  })
+  const names = Object.keys(deptMap)
+  return {
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: (p: any) => `${p[0].name}: ¥${p[0].value.toLocaleString()}` },
+    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+    xAxis: {
+      type: 'category', data: names,
+      axisLine: { lineStyle: { color: '#e2e8f0' } },
+      axisLabel: { color: '#64748b' }
+    },
+    yAxis: {
+      type: 'value',
+      axisLine: { show: false }, axisTick: { show: false },
+      axisLabel: { color: '#64748b', formatter: (v: number) => `¥${(v / 1000).toFixed(0)}k` },
+      splitLine: { lineStyle: { color: '#f1f5f9' } }
+    },
+    series: [{
+      name: '实发工资',
+      type: 'bar',
+      barWidth: '45%',
+      itemStyle: {
+        borderRadius: [6, 6, 0, 0],
+        color: {
+          type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+          colorStops: [
+            { offset: 0, color: '#3b82f6' },
+            { offset: 1, color: '#93c5fd' }
+          ]
+        }
+      },
+      data: Object.values(deptMap)
+    }]
+  }
+}
 
 const searchForm = ref({
   month: '',
@@ -166,6 +252,17 @@ function handleSubmit() {
       <div class="stat-item">
         <p class="stat-label">实发工资总额</p>
         <p class="stat-value text-primary">¥{{ totalStats.netTotal.toLocaleString() }}</p>
+      </div>
+    </div>
+
+    <div class="chart-row">
+      <div class="chart-card card-content">
+        <h3 class="chart-title">工资构成分析</h3>
+        <div ref="composeChartRef" class="chart-box"></div>
+      </div>
+      <div class="chart-card card-content">
+        <h3 class="chart-title">部门工资对比</h3>
+        <div ref="deptChartRef" class="chart-box"></div>
       </div>
     </div>
 
@@ -337,6 +434,16 @@ function handleSubmit() {
 .salary-page {
   padding: 0;
 }
+
+.chart-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+.chart-card { min-height: 280px; }
+.chart-title { font-size: 15px; font-weight: 600; color: #1e293b; margin-bottom: 12px; }
+.chart-box { width: 100%; height: 220px; }
 
 .stats-row {
   display: grid;

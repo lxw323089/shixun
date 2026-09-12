@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAppStore } from '@/stores/app'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
-import { Plus, Search, Edit, Delete, Key } from '@element-plus/icons-vue'
+import { Plus, Search, Edit, Delete } from '@element-plus/icons-vue'
 import type { User } from '@/types'
 
 const store = useAppStore()
@@ -87,28 +87,36 @@ function handleDelete(row: User) {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning'
-  }).then(() => {
-    store.deleteUser(row.id)
-    ElMessage.success('删除成功')
+  }).then(async () => {
+    try {
+      await store.deleteUser(row.id)
+      ElMessage.success('删除成功')
+    } catch {
+      // 错误消息已由请求拦截器显示
+    }
   }).catch(() => {})
 }
 
 function handleSubmit() {
-  formRef.value?.validate((valid) => {
+  formRef.value?.validate(async (valid) => {
     if (valid) {
       const worker = form.value.workerId ? store.workers.find(w => w.id === form.value.workerId) : null
       const data = {
         ...form.value,
         workerName: worker?.name
       }
-      if (form.value.id) {
-        store.updateUser(form.value.id, data)
-        ElMessage.success('修改成功')
-      } else {
-        store.addUser(data as Omit<User, 'id' | 'createTime'>)
-        ElMessage.success('新增成功')
+      try {
+        if (form.value.id) {
+          await store.updateUser(form.value.id, data)
+          ElMessage.success('修改成功')
+        } else {
+          await store.addUser(data as Omit<User, 'id' | 'createTime'>)
+          ElMessage.success('新增成功')
+        }
+        dialogVisible.value = false
+      } catch {
+        // 错误消息已由请求拦截器显示
       }
-      dialogVisible.value = false
     }
   })
 }
@@ -119,6 +127,12 @@ function getRoleText(role: string) {
 
 function getRoleType(role: string) {
   return role === 'admin' ? 'danger' : 'primary'
+}
+
+function getWorkerName(workerId: number | null | undefined) {
+  if (!workerId) return '-'
+  const w = store.workers.find(w => w.id === workerId)
+  return w?.name || '-'
 }
 </script>
 
@@ -170,8 +184,8 @@ function getRoleType(role: string) {
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="workerName" label="关联员工" width="120">
-          <template #default="{ row }">{{ row.workerName || '-' }}</template>
+        <el-table-column label="关联员工" width="120">
+          <template #default="{ row }">{{ getWorkerName(row.workerId) }}</template>
         </el-table-column>
         <el-table-column prop="status" label="状态" width="100">
           <template #default="{ row }">
@@ -181,9 +195,8 @@ function getRoleType(role: string) {
           </template>
         </el-table-column>
         <el-table-column prop="createTime" label="创建时间" width="180" />
-        <el-table-column label="操作" width="180" fixed="right">
+        <el-table-column label="操作" width="120" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" link :icon="Key" @click="handleEdit(row)">权限</el-button>
             <el-button type="primary" link :icon="Edit" @click="handleEdit(row)">编辑</el-button>
             <el-button type="danger" link :icon="Delete" @click="handleDelete(row)">删除</el-button>
           </template>

@@ -1,15 +1,76 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useAppStore } from '@/stores/app'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Plus, Search, Edit, Delete } from '@element-plus/icons-vue'
 import type { Department } from '@/types'
+import * as echarts from 'echarts'
 
 const store = useAppStore()
 
-onMounted(() => {
-  store.loadDepartments()
+const chartRef = ref<HTMLElement>()
+let chart: echarts.ECharts | null = null
+
+onMounted(async () => {
+  await Promise.all([store.loadDepartments(), store.loadWorkers()])
+  await nextTick()
+  initChart()
 })
+
+onBeforeUnmount(() => {
+  chart?.dispose()
+})
+
+function initChart() {
+  if (chartRef.value) {
+    chart = echarts.init(chartRef.value)
+    chart.setOption(getChartOption())
+  }
+}
+
+function getChartOption() {
+  const deptMap: Record<string, number> = {}
+  store.departments.forEach(d => { deptMap[d.name] = 0 })
+  store.workers.forEach(w => {
+    if (w.status === '在职' && w.departmentName) {
+      deptMap[w.departmentName] = (deptMap[w.departmentName] || 0) + 1
+    }
+  })
+  const names = Object.keys(deptMap)
+  const values = Object.values(deptMap)
+  return {
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+    xAxis: {
+      type: 'category', data: names,
+      axisLine: { lineStyle: { color: '#e2e8f0' } },
+      axisLabel: { color: '#64748b' }
+    },
+    yAxis: {
+      type: 'value',
+      axisLine: { show: false }, axisTick: { show: false },
+      axisLabel: { color: '#64748b' },
+      splitLine: { lineStyle: { color: '#f1f5f9' } }
+    },
+    series: [{
+      name: '在职人数',
+      type: 'bar',
+      barWidth: '45%',
+      itemStyle: {
+        borderRadius: [6, 6, 0, 0],
+        color: {
+          type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+          colorStops: [
+            { offset: 0, color: '#3b82f6' },
+            { offset: 1, color: '#93c5fd' }
+          ]
+        }
+      },
+      label: { show: true, position: 'top', color: '#64748b', fontSize: 12 },
+      data: values
+    }]
+  }
+}
 
 const searchKeyword = ref('')
 const dialogVisible = ref(false)
@@ -91,6 +152,11 @@ async function handleSubmit() {
       <el-button type="primary" :icon="Plus" @click="handleAdd">新增部门</el-button>
     </div>
 
+    <div class="chart-card card-content">
+      <h3 class="chart-title">各部门在职人数</h3>
+      <div ref="chartRef" class="chart-box"></div>
+    </div>
+
     <div class="card-content">
       <div class="search-bar">
         <el-input
@@ -147,5 +213,18 @@ async function handleSubmit() {
 <style scoped>
 .department-page {
   padding: 0;
+}
+.chart-card {
+  margin-bottom: 20px;
+}
+.chart-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 12px;
+}
+.chart-box {
+  width: 100%;
+  height: 320px;
 }
 </style>

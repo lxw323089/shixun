@@ -114,9 +114,12 @@ public class UserController {
             String token = authHeader.substring(7);
             Long userId = jwtUtil.extractUserId(token);
             String nickname = body.get("nickname");
-            User updated = userService.updateProfile(userId, nickname);
+            String username = body.get("username");
+            User updated = userService.updateProfile(userId, nickname, username);
             updated.setPassword(null);
             return Result.success("更新成功", updated);
+        } catch (RuntimeException e) {
+            return Result.error(e.getMessage());
         } catch (Exception e) {
             return Result.error("更新失败：" + e.getMessage());
         }

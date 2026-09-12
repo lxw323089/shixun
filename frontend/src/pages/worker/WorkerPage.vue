@@ -1,16 +1,86 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useAppStore } from '@/stores/app'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Plus, Search, Edit, Delete, View } from '@element-plus/icons-vue'
 import type { Worker } from '@/types'
+import * as echarts from 'echarts'
 
 const store = useAppStore()
 
-onMounted(() => {
-  store.loadWorkers()
-  store.loadDepartments()
+const deptChartRef = ref<HTMLElement>()
+const genderChartRef = ref<HTMLElement>()
+let deptChart: echarts.ECharts | null = null
+let genderChart: echarts.ECharts | null = null
+
+onMounted(async () => {
+  await Promise.all([store.loadWorkers(), store.loadDepartments()])
+  await nextTick()
+  initCharts()
 })
+
+onBeforeUnmount(() => {
+  deptChart?.dispose()
+  genderChart?.dispose()
+})
+
+function initCharts() {
+  if (deptChartRef.value) {
+    deptChart = echarts.init(deptChartRef.value)
+    deptChart.setOption(getDeptChartOption())
+  }
+  if (genderChartRef.value) {
+    genderChart = echarts.init(genderChartRef.value)
+    genderChart.setOption(getGenderChartOption())
+  }
+}
+
+function getDeptChartOption() {
+  const deptMap: Record<string, number> = {}
+  store.workers.forEach(w => {
+    if (w.status === '在职') {
+      deptMap[w.departmentName || '未分配'] = (deptMap[w.departmentName || '未分配'] || 0) + 1
+    }
+  })
+  // 蓝色系单色渐变：深蓝 → 浅蓝 → 灰蓝
+  const palette = ['#1e40af', '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#94a3b8']
+  return {
+    color: palette,
+    tooltip: { trigger: 'item', formatter: '{b}: {c}人 ({d}%)' },
+    legend: { bottom: 0, icon: 'circle', textStyle: { fontSize: 12, color: '#64748b' } },
+    series: [{
+      name: '部门分布',
+      type: 'pie',
+      radius: ['40%', '65%'],
+      itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
+      label: { show: false },
+      emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' } },
+      data: Object.entries(deptMap).map(([name, value]) => ({ name, value }))
+    }]
+  }
+}
+
+function getGenderChartOption() {
+  const male = store.workers.filter(w => w.status === '在职' && w.gender === '男').length
+  const female = store.workers.filter(w => w.status === '在职' && w.gender === '女').length
+  return {
+    color: ['#3b82f6', '#cbd5e1'],
+    tooltip: { trigger: 'item', formatter: '{b}: {c}人 ({d}%)' },
+    legend: { bottom: 0, icon: 'circle', textStyle: { fontSize: 12, color: '#64748b' } },
+    series: [{
+      name: '性别分布',
+      type: 'pie',
+      radius: ['40%', '65%'],
+      itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
+      label: { show: false },
+      emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' } },
+      data: [
+        { name: '男', value: male },
+        { name: '女', value: female }
+      ]
+    }]
+  }
+}
 
 const searchForm = ref({
   keyword: '',
@@ -147,6 +217,17 @@ async function handleSubmit() {
     <div class="page-header">
       <h2 class="page-title">员工管理</h2>
       <el-button type="primary" :icon="Plus" @click="handleAdd">新增员工</el-button>
+    </div>
+
+    <div class="chart-row">
+      <div class="chart-card card-content">
+        <h3 class="chart-title">部门在职人数分布</h3>
+        <div ref="deptChartRef" class="chart-box"></div>
+      </div>
+      <div class="chart-card card-content">
+        <h3 class="chart-title">在职性别分布</h3>
+        <div ref="genderChartRef" class="chart-box"></div>
+      </div>
     </div>
 
     <div class="card-content">
@@ -319,7 +400,15 @@ async function handleSubmit() {
 </template>
 
 <style scoped>
-.worker-page {
-  padding: 0;
+.worker-page { padding: 0; }
+
+.chart-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
 }
+.chart-card { min-height: 280px; }
+.chart-title { font-size: 15px; font-weight: 600; color: #1e293b; margin-bottom: 12px; }
+.chart-box { width: 100%; height: 220px; }
 </style>
