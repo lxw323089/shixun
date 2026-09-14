@@ -7,7 +7,6 @@ import com.example.workermanagement.entity.User;
 import com.example.workermanagement.service.OperationLogService;
 import com.example.workermanagement.service.UserService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -29,13 +28,7 @@ public class UserController {
     public Result<PageResult<User>> getUsers(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int pageSize) {
-        Page<User> userPage = userService.getUsers(page, pageSize);
-        PageResult<User> result = new PageResult<>(
-                userPage.getContent(),
-                userPage.getTotalElements(),
-                page,
-                pageSize
-        );
+        PageResult<User> result = userService.getUsers(page, pageSize);
         return Result.success(result);
     }
     

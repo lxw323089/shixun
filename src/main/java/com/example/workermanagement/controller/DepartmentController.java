@@ -1,6 +1,5 @@
 package com.example.workermanagement.controller;
 
-import com.example.workermanagement.common.PageResult;
 import com.example.workermanagement.common.Result;
 import com.example.workermanagement.config.JwtUtil;
 import com.example.workermanagement.entity.Department;

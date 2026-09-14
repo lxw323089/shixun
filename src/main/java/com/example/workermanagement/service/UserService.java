@@ -1,97 +1,107 @@
 package com.example.workermanagement.service;
 
+import com.example.workermanagement.common.PageResult;
+import com.example.workermanagement.common.TimeUtil;
 import com.example.workermanagement.entity.User;
-import com.example.workermanagement.repository.UserRepository;
-import com.example.workermanagement.repository.WorkerRepository;
+import com.example.workermanagement.mapper.UserMapper;
+import com.example.workermanagement.mapper.WorkerMapper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class UserService {
 
-    private final UserRepository userRepository;
-    private final WorkerRepository workerRepository;
-    
-    public Page<User> getUsers(int page, int pageSize) {
-        Pageable pageable = PageRequest.of(page - 1, pageSize, Sort.by(Sort.Direction.DESC, "createTime"));
-        return userRepository.findAll(pageable);
+    private final UserMapper userMapper;
+    private final WorkerMapper workerMapper;
+
+    public PageResult<User> getUsers(int page, int pageSize) {
+        int offset = (page - 1) * pageSize;
+        List<User> list = userMapper.selectPage(offset, pageSize);
+        long total = userMapper.count();
+        return new PageResult<>(list, total, page, pageSize);
     }
-    
+
     public Optional<User> getUserById(Long id) {
-        return userRepository.findById(id);
+        return Optional.ofNullable(userMapper.selectById(id));
     }
-    
+
     public Optional<User> getUserByUsername(String username) {
-        return userRepository.findByUsername(username);
+        return Optional.ofNullable(userMapper.selectByUsername(username));
     }
-    
+
     public User createUser(User user) {
-        if (userRepository.existsByUsername(user.getUsername())) {
+        if (userMapper.existsByUsername(user.getUsername())) {
             throw new RuntimeException("用户名已存在");
         }
         if (user.getPassword() == null || user.getPassword().isEmpty()) {
             user.setPassword("123456");
         }
-        return userRepository.save(user);
+        if (user.getCreateTime() == null) {
+            user.setCreateTime(TimeUtil.now());
+        }
+        userMapper.insert(user);
+        return user;
     }
-    
+
     public User updateUser(Long id, User user) {
-        User existing = userRepository.findById(id)
+        User existing = getUserById(id)
                 .orElseThrow(() -> new RuntimeException("用户不存在"));
-        
-        if (!existing.getUsername().equals(user.getUsername()) 
-                && userRepository.existsByUsername(user.getUsername())) {
+
+        if (!existing.getUsername().equals(user.getUsername())
+                && userMapper.existsByUsername(user.getUsername())) {
             throw new RuntimeException("用户名已存在");
         }
-        
+
         if ("admin".equals(existing.getRole()) && !"admin".equals(user.getRole())
-                && userRepository.countByRole("admin") <= 1) {
+                && userMapper.countByRole("admin") <= 1) {
             throw new RuntimeException("修改失败：系统至少需要保留一名管理员");
         }
-        
+
         existing.setUsername(user.getUsername());
         existing.setRole(user.getRole());
         existing.setWorkerId(user.getWorkerId());
         if (user.getWorkerId() != null) {
-            workerRepository.findById(user.getWorkerId()).ifPresent(w -> existing.setWorkerName(w.getName()));
+            com.example.workermanagement.entity.Worker worker = workerMapper.selectById(user.getWorkerId());
+            if (worker != null) {
+                existing.setWorkerName(worker.getName());
+            }
         } else {
             existing.setWorkerName(null);
         }
         existing.setStatus(user.getStatus());
-        
-        return userRepository.save(existing);
+
+        userMapper.update(existing);
+        return existing;
     }
-    
+
     public User resetPassword(Long id) {
-        User existing = userRepository.findById(id)
+        User existing = getUserById(id)
                 .orElseThrow(() -> new RuntimeException("用户不存在"));
         existing.setPassword("123456");
-        return userRepository.save(existing);
+        userMapper.update(existing);
+        return existing;
     }
-    
+
     public void deleteUser(Long id) {
-        User existing = userRepository.findById(id)
+        User existing = getUserById(id)
                 .orElseThrow(() -> new RuntimeException("用户不存在"));
-        if ("admin".equals(existing.getRole()) && userRepository.countByRole("admin") <= 1) {
+        if ("admin".equals(existing.getRole()) && userMapper.countByRole("admin") <= 1) {
             throw new RuntimeException("删除失败：系统至少需要保留一名管理员");
         }
-        userRepository.deleteById(id);
+        userMapper.deleteById(id);
     }
 
     public User updateProfile(Long userId, String nickname, String username) {
-        User existing = userRepository.findById(userId)
+        User existing = getUserById(userId)
                 .orElseThrow(() -> new RuntimeException("用户不存在"));
 
         if (username != null && !username.isEmpty()
                 && !username.equals(existing.getUsername())) {
-            if (userRepository.existsByUsername(username)) {
+            if (userMapper.existsByUsername(username)) {
                 throw new RuntimeException("用户名已存在");
             }
             existing.setUsername(username);
@@ -101,13 +111,15 @@ public class UserService {
             existing.setNickname(nickname);
         }
 
-        return userRepository.save(existing);
+        userMapper.update(existing);
+        return existing;
     }
 
     public User updateAvatar(Long userId, String avatar) {
-        User existing = userRepository.findById(userId)
+        User existing = getUserById(userId)
                 .orElseThrow(() -> new RuntimeException("用户不存在"));
         existing.setAvatar(avatar);
-        return userRepository.save(existing);
+        userMapper.update(existing);
+        return existing;
     }
 }

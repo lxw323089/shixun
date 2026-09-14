@@ -1,20 +1,20 @@
 package com.example.workermanagement.service;
 
+import com.example.workermanagement.common.PageResult;
+import com.example.workermanagement.common.TimeUtil;
 import com.example.workermanagement.entity.OperationLog;
-import com.example.workermanagement.repository.OperationLogRepository;
+import com.example.workermanagement.mapper.OperationLogMapper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class OperationLogService {
-    
-    private final OperationLogRepository operationLogRepository;
-    
+
+    private final OperationLogMapper operationLogMapper;
+
     public void addLog(Long userId, String username, String module, String operation, String content) {
         OperationLog log = new OperationLog();
         log.setUserId(userId);
@@ -22,11 +22,14 @@ public class OperationLogService {
         log.setModule(module);
         log.setOperation(operation);
         log.setContent(content);
-        operationLogRepository.save(log);
+        log.setCreateTime(TimeUtil.now());
+        operationLogMapper.insert(log);
     }
-    
-    public Page<OperationLog> getLogs(int page, int pageSize) {
-        Pageable pageable = PageRequest.of(page - 1, pageSize, Sort.by(Sort.Direction.DESC, "createTime"));
-        return operationLogRepository.findAll(pageable);
+
+    public PageResult<OperationLog> getLogs(int page, int pageSize) {
+        int offset = (page - 1) * pageSize;
+        List<OperationLog> list = operationLogMapper.selectPage(offset, pageSize);
+        long total = operationLogMapper.count();
+        return new PageResult<>(list, total, page, pageSize);
     }
 }

@@ -1,9 +1,9 @@
 package com.example.workermanagement.service;
 
+import com.example.workermanagement.common.TimeUtil;
 import com.example.workermanagement.entity.Department;
-import com.example.workermanagement.repository.DepartmentRepository;
+import com.example.workermanagement.mapper.DepartmentMapper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -12,42 +12,51 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class DepartmentService {
-    
-    private final DepartmentRepository departmentRepository;
-    
+
+    private final DepartmentMapper departmentMapper;
+
     public List<Department> getAllDepartments() {
-        return departmentRepository.findAll(Sort.by(Sort.Direction.ASC, "id"));
+        return departmentMapper.selectAll();
     }
-    
+
     public Optional<Department> getDepartmentById(Long id) {
-        return departmentRepository.findById(id);
+        return Optional.ofNullable(departmentMapper.selectById(id));
     }
-    
+
     public Department createDepartment(Department department) {
-        if (departmentRepository.existsByName(department.getName())) {
+        if (departmentMapper.selectByName(department.getName()) != null) {
             throw new RuntimeException("部门名称已存在");
         }
-        return departmentRepository.save(department);
+        String now = TimeUtil.now();
+        if (department.getCreateTime() == null) {
+            department.setCreateTime(now);
+        }
+        department.setUpdateTime(now);
+        departmentMapper.insert(department);
+        return department;
     }
-    
+
     public Department updateDepartment(Long id, Department department) {
-        Department existing = departmentRepository.findById(id)
+        Department existing = getDepartmentById(id)
                 .orElseThrow(() -> new RuntimeException("部门不存在"));
-        
-        if (!existing.getName().equals(department.getName()) 
-                && departmentRepository.existsByName(department.getName())) {
+
+        if (!existing.getName().equals(department.getName())
+                && departmentMapper.selectByName(department.getName()) != null) {
             throw new RuntimeException("部门名称已存在");
         }
-        
+
         existing.setName(department.getName());
         existing.setDescription(department.getDescription());
-        return departmentRepository.save(existing);
+        existing.setUpdateTime(TimeUtil.now());
+
+        departmentMapper.update(existing);
+        return existing;
     }
-    
+
     public void deleteDepartment(Long id) {
-        if (!departmentRepository.existsById(id)) {
+        if (departmentMapper.selectById(id) == null) {
             throw new RuntimeException("部门不存在");
         }
-        departmentRepository.deleteById(id);
+        departmentMapper.deleteById(id);
     }
 }

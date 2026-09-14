@@ -7,7 +7,6 @@ import com.example.workermanagement.entity.Salary;
 import com.example.workermanagement.service.OperationLogService;
 import com.example.workermanagement.service.SalaryService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,13 +27,7 @@ public class SalaryController {
             @RequestParam(required = false) String workerName,
             @RequestParam(required = false) String month,
             @RequestParam(required = false) String status) {
-        Page<Salary> salaryPage = salaryService.getSalaries(page, pageSize, workerName, month, status);
-        PageResult<Salary> result = new PageResult<>(
-                salaryPage.getContent(),
-                salaryPage.getTotalElements(),
-                page,
-                pageSize
-        );
+        PageResult<Salary> result = salaryService.getSalaries(page, pageSize, workerName, month, status);
         return Result.success(result);
     }
     

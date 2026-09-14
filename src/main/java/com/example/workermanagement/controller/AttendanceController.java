@@ -7,7 +7,6 @@ import com.example.workermanagement.entity.Attendance;
 import com.example.workermanagement.service.AttendanceService;
 import com.example.workermanagement.service.OperationLogService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -26,13 +25,7 @@ public class AttendanceController {
             @RequestParam(required = false) String workerName,
             @RequestParam(required = false) String date,
             @RequestParam(required = false) String status) {
-        Page<Attendance> attendancePage = attendanceService.getAttendances(page, pageSize, workerName, date, status);
-        PageResult<Attendance> result = new PageResult<>(
-                attendancePage.getContent(),
-                attendancePage.getTotalElements(),
-                page,
-                pageSize
-        );
+        PageResult<Attendance> result = attendanceService.getAttendances(page, pageSize, workerName, date, status);
         return Result.success(result);
     }
     

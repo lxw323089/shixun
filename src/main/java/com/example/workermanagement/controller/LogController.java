@@ -5,7 +5,6 @@ import com.example.workermanagement.common.Result;
 import com.example.workermanagement.entity.OperationLog;
 import com.example.workermanagement.service.OperationLogService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -19,13 +18,7 @@ public class LogController {
     public Result<PageResult<OperationLog>> getLogs(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int pageSize) {
-        Page<OperationLog> logPage = operationLogService.getLogs(page, pageSize);
-        PageResult<OperationLog> result = new PageResult<>(
-                logPage.getContent(),
-                logPage.getTotalElements(),
-                page,
-                pageSize
-        );
+        PageResult<OperationLog> result = operationLogService.getLogs(page, pageSize);
         return Result.success(result);
     }
 }

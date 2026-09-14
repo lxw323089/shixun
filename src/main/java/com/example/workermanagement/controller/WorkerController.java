@@ -7,7 +7,6 @@ import com.example.workermanagement.entity.Worker;
 import com.example.workermanagement.service.OperationLogService;
 import com.example.workermanagement.service.WorkerService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,13 +27,7 @@ public class WorkerController {
             @RequestParam(required = false) String name,
             @RequestParam(required = false) Long departmentId,
             @RequestParam(required = false) String status) {
-        Page<Worker> workerPage = workerService.getWorkers(page, pageSize, name, departmentId, status);
-        PageResult<Worker> result = new PageResult<>(
-                workerPage.getContent(),
-                workerPage.getTotalElements(),
-                page,
-                pageSize
-        );
+        PageResult<Worker> result = workerService.getWorkers(page, pageSize, name, departmentId, status);
         return Result.success(result);
     }
     
