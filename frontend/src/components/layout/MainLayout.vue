@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/app'
 import {
   DataAnalysis,
+  MagicStick,
   OfficeBuilding,
   User,
   Calendar,
@@ -23,6 +24,7 @@ const menuItems = computed(() => {
   const role = store.currentUser?.role
   const items: any[] = [
     { index: '/dashboard', title: '仪表盘', icon: DataAnalysis },
+    { index: '/ai', title: 'AI 智能助手', icon: MagicStick },
   ]
   if (role === 'admin') {
     items.push(

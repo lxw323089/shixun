@@ -6,6 +6,7 @@ import com.example.workermanagement.entity.Worker;
 import com.example.workermanagement.mapper.WorkerMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -31,6 +32,7 @@ public class WorkerService {
         return Optional.ofNullable(workerMapper.selectById(id));
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public Worker createWorker(Worker worker) {
         String now = TimeUtil.now();
         if (worker.getCreateTime() == null) {
@@ -41,6 +43,7 @@ public class WorkerService {
         return worker;
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public Worker updateWorker(Long id, Worker worker) {
         Worker existing = getWorkerById(id)
                 .orElseThrow(() -> new RuntimeException("员工不存在"));
@@ -61,6 +64,7 @@ public class WorkerService {
         return existing;
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public void deleteWorker(Long id) {
         if (workerMapper.selectById(id) == null) {
             throw new RuntimeException("员工不存在");

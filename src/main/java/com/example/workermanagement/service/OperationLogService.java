@@ -6,6 +6,7 @@ import com.example.workermanagement.entity.OperationLog;
 import com.example.workermanagement.mapper.OperationLogMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -15,6 +16,7 @@ public class OperationLogService {
 
     private final OperationLogMapper operationLogMapper;
 
+    @Transactional(rollbackFor = Exception.class)
     public void addLog(Long userId, String username, String module, String operation, String content) {
         OperationLog log = new OperationLog();
         log.setUserId(userId);

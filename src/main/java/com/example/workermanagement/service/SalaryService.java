@@ -6,6 +6,7 @@ import com.example.workermanagement.entity.Salary;
 import com.example.workermanagement.mapper.SalaryMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -31,6 +32,7 @@ public class SalaryService {
         return Optional.ofNullable(salaryMapper.selectById(id));
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public Salary createSalary(Salary salary) {
         if (salary.getTotal() == null) {
             double total = (salary.getBaseSalary() != null ? salary.getBaseSalary() : 0)
@@ -45,6 +47,7 @@ public class SalaryService {
         return salary;
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public Salary updateSalary(Long id, Salary salary) {
         Salary existing = getSalaryById(id)
                 .orElseThrow(() -> new RuntimeException("工资记录不存在"));
@@ -68,6 +71,7 @@ public class SalaryService {
         return existing;
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public Salary paySalary(Long id) {
         Salary existing = getSalaryById(id)
                 .orElseThrow(() -> new RuntimeException("工资记录不存在"));
@@ -76,6 +80,7 @@ public class SalaryService {
         return existing;
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public void deleteSalary(Long id) {
         if (salaryMapper.selectById(id) == null) {
             throw new RuntimeException("工资记录不存在");

@@ -20,6 +20,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '仪表盘', icon: 'DataAnalysis' }
       },
       {
+        path: 'ai',
+        name: 'AiAssistant',
+        component: () => import('@/pages/ai/AiAssistantPage.vue'),
+        meta: { title: 'AI 智能助手', icon: 'MagicStick' }
+      },
+      {
         path: 'department',
         name: 'Department',
         component: () => import('@/pages/department/DepartmentPage.vue'),

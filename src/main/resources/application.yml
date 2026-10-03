@@ -15,6 +15,14 @@ spring:
     init:
       mode: always
 
+  ai:
+    openai:
+      api-key: ${AI_API_KEY:sk-cfbd49a06fff4ef08c604aa79598a6bf}
+      base-url: https://api.deepseek.com
+      chat:
+        options:
+          model: deepseek-chat
+
 mybatis:
   mapper-locations: classpath:mapper/*.xml
   type-aliases-package: com.example.workermanagement.entity

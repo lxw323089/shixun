@@ -5,6 +5,7 @@ import com.example.workermanagement.entity.User;
 import com.example.workermanagement.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -18,6 +19,7 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final OperationLogService operationLogService;
 
+    @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> login(String username, String password) {
         User user = Optional.ofNullable(userMapper.selectByUsername(username))
                 .orElseThrow(() -> new RuntimeException("用户名或密码错误"));
@@ -42,6 +44,7 @@ public class AuthService {
         return result;
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public void logout(Long userId, String username) {
         operationLogService.addLog(userId, username, "系统登录", "登出", "用户退出系统");
     }

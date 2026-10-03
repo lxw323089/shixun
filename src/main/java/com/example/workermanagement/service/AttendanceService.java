@@ -6,6 +6,7 @@ import com.example.workermanagement.entity.Attendance;
 import com.example.workermanagement.mapper.AttendanceMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -27,6 +28,7 @@ public class AttendanceService {
         return Optional.ofNullable(attendanceMapper.selectById(id));
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public Attendance createAttendance(Attendance attendance) {
         if (attendance.getCreateTime() == null) {
             attendance.setCreateTime(TimeUtil.now());
@@ -35,6 +37,7 @@ public class AttendanceService {
         return attendance;
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public Attendance updateAttendance(Long id, Attendance attendance) {
         Attendance existing = getAttendanceById(id)
                 .orElseThrow(() -> new RuntimeException("考勤记录不存在"));
@@ -52,6 +55,7 @@ public class AttendanceService {
         return existing;
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public void deleteAttendance(Long id) {
         if (attendanceMapper.selectById(id) == null) {
             throw new RuntimeException("考勤记录不存在");

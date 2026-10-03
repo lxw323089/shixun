@@ -7,6 +7,7 @@ import com.example.workermanagement.mapper.UserMapper;
 import com.example.workermanagement.mapper.WorkerMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -33,6 +34,7 @@ public class UserService {
         return Optional.ofNullable(userMapper.selectByUsername(username));
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public User createUser(User user) {
         if (userMapper.existsByUsername(user.getUsername())) {
             throw new RuntimeException("用户名已存在");
@@ -47,6 +49,7 @@ public class UserService {
         return user;
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public User updateUser(Long id, User user) {
         User existing = getUserById(id)
                 .orElseThrow(() -> new RuntimeException("用户不存在"));
@@ -78,6 +81,7 @@ public class UserService {
         return existing;
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public User resetPassword(Long id) {
         User existing = getUserById(id)
                 .orElseThrow(() -> new RuntimeException("用户不存在"));
@@ -86,6 +90,7 @@ public class UserService {
         return existing;
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public void deleteUser(Long id) {
         User existing = getUserById(id)
                 .orElseThrow(() -> new RuntimeException("用户不存在"));
@@ -95,6 +100,7 @@ public class UserService {
         userMapper.deleteById(id);
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public User updateProfile(Long userId, String nickname, String username) {
         User existing = getUserById(userId)
                 .orElseThrow(() -> new RuntimeException("用户不存在"));
@@ -115,6 +121,7 @@ public class UserService {
         return existing;
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public User updateAvatar(Long userId, String avatar) {
         User existing = getUserById(userId)
                 .orElseThrow(() -> new RuntimeException("用户不存在"));

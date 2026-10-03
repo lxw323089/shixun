@@ -5,6 +5,7 @@ import com.example.workermanagement.entity.Department;
 import com.example.workermanagement.mapper.DepartmentMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -23,6 +24,7 @@ public class DepartmentService {
         return Optional.ofNullable(departmentMapper.selectById(id));
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public Department createDepartment(Department department) {
         if (departmentMapper.selectByName(department.getName()) != null) {
             throw new RuntimeException("部门名称已存在");
@@ -36,6 +38,7 @@ public class DepartmentService {
         return department;
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public Department updateDepartment(Long id, Department department) {
         Department existing = getDepartmentById(id)
                 .orElseThrow(() -> new RuntimeException("部门不存在"));
@@ -53,6 +56,7 @@ public class DepartmentService {
         return existing;
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public void deleteDepartment(Long id) {
         if (departmentMapper.selectById(id) == null) {
             throw new RuntimeException("部门不存在");
